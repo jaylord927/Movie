@@ -13,49 +13,79 @@ $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = sanitize_input($_POST['name']);
+    $username = sanitize_input($_POST['username']);
     $email = sanitize_input($_POST['email']);
     $password = sanitize_input($_POST['password']);
     $confirm_password = sanitize_input($_POST['confirm_password']);
     $role = 'Customer'; // Default role
     
     // Validation
-    if (empty($name) || empty($email) || empty($password)) {
+    if (empty($name) || empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
         $error = "All fields are required!";
     } elseif ($password !== $confirm_password) {
         $error = "Passwords do not match!";
     } elseif (strlen($password) < 6) {
         $error = "Password must be at least 6 characters!";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Invalid email format!";
+    } elseif (!preg_match('/^[a-zA-Z0-9_]{3,50}$/', $username)) {
+        $error = "Username must be 3-50 characters and can only contain letters, numbers, and underscores!";
     } else {
         $conn = get_db_connection();
         
-        // Check if email exists
-        $check_stmt = $conn->prepare("SELECT u_id FROM users WHERE u_email = ?");
-        $check_stmt->bind_param("s", $email);
-        $check_stmt->execute();
-        $check_result = $check_stmt->get_result();
+        // Check if username already exists
+        $check_username_stmt = $conn->prepare("SELECT u_id FROM users WHERE u_username = ?");
+        $check_username_stmt->bind_param("s", $username);
+        $check_username_stmt->execute();
+        $check_username_result = $check_username_stmt->get_result();
         
-        if ($check_result->num_rows > 0) {
-            $error = "Email already registered!";
+        if ($check_username_result->num_rows > 0) {
+            $error = "Username already taken! Please choose a different username.";
+            $check_username_stmt->close();
         } else {
-            // Hash password
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $check_username_stmt->close();
             
-            // Insert user
-            $stmt = $conn->prepare("INSERT INTO users (u_name, u_email, u_pass, u_role) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $name, $email, $hashed_password, $role);
+            // Check if email already exists
+            $check_email_stmt = $conn->prepare("SELECT u_id FROM users WHERE u_email = ?");
+            $check_email_stmt->bind_param("s", $email);
+            $check_email_stmt->execute();
+            $check_email_result = $check_email_stmt->get_result();
             
-            if ($stmt->execute()) {
-                $success = "Registration successful! You can now login.";
-                // Clear form
-                $_POST = array();
+            if ($check_email_result->num_rows > 0) {
+                $error = "Email already registered!";
             } else {
-                $error = "Registration failed: " . $conn->error;
+                // Hash password
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                
+                // Insert user with username
+                $stmt = $conn->prepare("INSERT INTO users (u_name, u_username, u_email, u_pass, u_role) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssss", $name, $username, $email, $hashed_password, $role);
+                
+                if ($stmt->execute()) {
+                    $user_id = $stmt->insert_id;
+                    $success = "Registration successful! You can now login.";
+                    
+                    // Auto-login after registration (optional)
+                    // $_SESSION['user_id'] = $user_id;
+                    // $_SESSION['user_name'] = $name;
+                    // $_SESSION['user_username'] = $username;
+                    // $_SESSION['user_email'] = $email;
+                    // $_SESSION['user_role'] = $role;
+                    // header("Location: " . SITE_URL . "index.php?page=customer/browse-movies");
+                    // exit();
+                    
+                    // Clear form
+                    $_POST = array();
+                } else {
+                    $error = "Registration failed: " . $conn->error;
+                }
+                
+                $stmt->close();
             }
             
-            $stmt->close();
+            $check_email_stmt->close();
         }
         
-        $check_stmt->close();
         $conn->close();
     }
 }
@@ -174,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .form-control {
             width: 100%;
-            padding: 16px 20px;
+            padding: 16px 50px 16px 20px;
             background: rgba(255, 255, 255, 0.08);
             border: 2px solid rgba(226, 48, 32, 0.3);
             border-radius: 12px;
@@ -194,6 +224,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: rgba(255, 255, 255, 0.5);
         }
         
+        .input-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.2rem;
+        }
+        
+        .form-control.has-icon {
+            padding-left: 50px;
+        }
+        
         .password-toggle {
             position: absolute;
             right: 20px;
@@ -206,10 +249,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 1.2rem;
             transition: all 0.3s ease;
             padding: 5px;
+            z-index: 2;
         }
         
         .password-toggle:hover {
             color: #ff6b6b;
+        }
+        
+        .username-check {
+            margin-top: 5px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .username-check.available {
+            color: #2ecc71;
+        }
+        
+        .username-check.taken {
+            color: #e74c3c;
+        }
+        
+        .username-check.loading {
+            color: #f39c12;
+        }
+        
+        .password-strength {
+            margin-top: 10px;
+            height: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .password-strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        
+        .password-strength-text {
+            margin-top: 5px;
+            font-size: 0.85rem;
+            text-align: right;
         }
         
         .terms-agreement {
@@ -263,6 +347,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: linear-gradient(135deg, #c11b18 0%, #a80f0f 100%);
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(226, 48, 32, 0.4);
+        }
+        
+        .register-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
         }
         
         .login-link {
@@ -371,7 +461,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .alert {
             padding: 15px 20px;
             border-radius: 10px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             font-weight: 600;
             animation: slideIn 0.5s ease;
         }
@@ -398,6 +488,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
         
         /* Responsive Design */
@@ -440,6 +536,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 left: 30px;
                 top: 20px;
             }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
         }
     </style>
 </head>
@@ -474,65 +574,113 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
             
             <form method="POST" action="" id="registerForm">
+                <!-- Full Name -->
                 <div class="form-group">
                     <label for="name" class="form-label">
                         <i class="fas fa-user"></i> Full Name
                     </label>
-                    <input type="text" 
-                           id="name" 
-                           name="name" 
-                           class="form-control" 
-                           placeholder="Enter your full name"
-                           autocomplete="name"
-                           autofocus
-                           required
-                           value="<?php echo isset($_POST['name']) ? htmlspecialchars($_POST['name']) : ''; ?>">
+                    <div style="position: relative;">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" 
+                               id="name" 
+                               name="name" 
+                               class="form-control has-icon" 
+                               placeholder="Enter your full name"
+                               autocomplete="name"
+                               autofocus
+                               required
+                               value="<?php echo isset($_POST['name']) ? htmlspecialchars($_POST['name']) : ''; ?>">
+                    </div>
                 </div>
                 
+                <!-- Username -->
+                <div class="form-group">
+                    <label for="username" class="form-label">
+                        <i class="fas fa-at"></i> Username
+                    </label>
+                    <div style="position: relative;">
+                        <i class="fas fa-at input-icon"></i>
+                        <input type="text" 
+                               id="username" 
+                               name="username" 
+                               class="form-control has-icon" 
+                               placeholder="Choose a username (3-50 characters)"
+                               autocomplete="username"
+                               required
+                               minlength="3"
+                               maxlength="50"
+                               pattern="[a-zA-Z0-9_]+"
+                               title="Only letters, numbers, and underscores allowed"
+                               value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
+                    </div>
+                    <div id="usernameCheck" class="username-check">
+                        <i class="fas fa-info-circle"></i> Choose a unique username
+                    </div>
+                </div>
+                
+                <!-- Email -->
                 <div class="form-group">
                     <label for="email" class="form-label">
                         <i class="fas fa-envelope"></i> Email Address
                     </label>
-                    <input type="email" 
-                           id="email" 
-                           name="email" 
-                           class="form-control" 
-                           placeholder="Enter your email address"
-                           autocomplete="email"
-                           required
-                           value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                    <div style="position: relative;">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" 
+                               id="email" 
+                               name="email" 
+                               class="form-control has-icon" 
+                               placeholder="Enter your email address"
+                               autocomplete="email"
+                               required
+                               value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                    </div>
                 </div>
                 
+                <!-- Password -->
                 <div class="form-group">
                     <label for="password" class="form-label">
                         <i class="fas fa-lock"></i> Password
                     </label>
-                    <input type="password" 
-                           id="password" 
-                           name="password" 
-                           class="form-control" 
-                           placeholder="Create a password (min. 6 characters)"
-                           autocomplete="new-password"
-                           required>
-                    <button type="button" class="password-toggle" id="togglePassword">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <div style="position: relative;">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" 
+                               id="password" 
+                               name="password" 
+                               class="form-control has-icon" 
+                               placeholder="Create a password (min. 6 characters)"
+                               autocomplete="new-password"
+                               required
+                               minlength="6">
+                        <button type="button" class="password-toggle" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength">
+                        <div id="passwordStrengthBar" class="password-strength-bar"></div>
+                    </div>
+                    <div id="passwordStrengthText" class="password-strength-text"></div>
                 </div>
                 
+                <!-- Confirm Password -->
                 <div class="form-group">
                     <label for="confirm_password" class="form-label">
                         <i class="fas fa-lock"></i> Confirm Password
                     </label>
-                    <input type="password" 
-                           id="confirm_password" 
-                           name="confirm_password" 
-                           class="form-control" 
-                           placeholder="Confirm your password"
-                           autocomplete="new-password"
-                           required>
-                    <button type="button" class="password-toggle" id="toggleConfirmPassword">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <div style="position: relative;">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" 
+                               id="confirm_password" 
+                               name="confirm_password" 
+                               class="form-control has-icon" 
+                               placeholder="Confirm your password"
+                               autocomplete="new-password"
+                               required
+                               minlength="6">
+                        <button type="button" class="password-toggle" id="toggleConfirmPassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div id="passwordMatch" style="margin-top: 5px; font-size: 0.85rem;"></div>
                 </div>
                 
                 <div class="terms-agreement">
@@ -542,7 +690,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </label>
                 </div>
                 
-                <button type="submit" class="register-button">
+                <button type="submit" class="register-button" id="submitButton">
                     <i class="fas fa-user-plus"></i> Create Account
                 </button>
                 
@@ -628,159 +776,334 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        // Password toggle functionality
-        const togglePassword = document.getElementById('togglePassword');
-        const passwordField = document.getElementById('password');
+    // Password toggle functionality
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordField = document.getElementById('password');
+    
+    const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    
+    togglePassword.addEventListener('click', function() {
+        const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordField.setAttribute('type', type);
+        this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+    });
+    
+    toggleConfirmPassword.addEventListener('click', function() {
+        const type = confirmPasswordField.getAttribute('type') === 'password' ? 'text' : 'password';
+        confirmPasswordField.setAttribute('type', type);
+        this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+    });
+    
+    // Username availability check
+    const usernameField = document.getElementById('username');
+    const usernameCheck = document.getElementById('usernameCheck');
+    let usernameCheckTimeout;
+    
+    usernameField.addEventListener('input', function() {
+        const username = this.value.trim();
         
-        const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
-        const confirmPasswordField = document.getElementById('confirm_password');
+        // Clear previous timeout
+        clearTimeout(usernameCheckTimeout);
         
-        togglePassword.addEventListener('click', function() {
-            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordField.setAttribute('type', type);
-            this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
-        });
-        
-        toggleConfirmPassword.addEventListener('click', function() {
-            const type = confirmPasswordField.getAttribute('type') === 'password' ? 'text' : 'password';
-            confirmPasswordField.setAttribute('type', type);
-            this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
-        });
-        
-        // Form validation
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
-            const name = document.getElementById('name').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
-            const terms = document.getElementById('terms').checked;
-            
-            // Check required fields
-            if (!name || !email || !password || !confirmPassword) {
-                e.preventDefault();
-                showAlert('Please fill in all required fields!', 'error');
-                return false;
-            }
-            
-            // Check password length
-            if (password.length < 6) {
-                e.preventDefault();
-                showAlert('Password must be at least 6 characters long!', 'error');
-                return false;
-            }
-            
-            // Check password match
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                showAlert('Passwords do not match!', 'error');
-                return false;
-            }
-            
-            // Check email format
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                e.preventDefault();
-                showAlert('Please enter a valid email address!', 'error');
-                return false;
-            }
-            
-            // Check terms agreement
-            if (!terms) {
-                e.preventDefault();
-                showAlert('You must agree to the Terms of Service and Privacy Policy!', 'error');
-                return false;
-            }
-            
-            return true;
-        });
-        
-        // Auto-focus name field
-        document.addEventListener('DOMContentLoaded', function() {
-            const nameField = document.getElementById('name');
-            if (nameField && !nameField.value) {
-                nameField.focus();
-            }
-        });
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Ctrl+Enter to submit form
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                document.getElementById('registerForm').submit();
-            }
-            
-            // Escape key to go back
-            if (e.key === 'Escape') {
-                window.history.back();
-            }
-        });
-        
-        // Alert function
-        function showAlert(message, type) {
-            // Remove existing alerts
-            const existingAlerts = document.querySelectorAll('.alert');
-            existingAlerts.forEach(alert => alert.remove());
-            
-            // Create new alert
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'}`;
-            alertDiv.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${message}`;
-            
-            // Insert after register header
-            const registerHeader = document.querySelector('.register-header');
-            registerHeader.parentNode.insertBefore(alertDiv, registerHeader.nextSibling);
-            
-            // Remove alert after 5 seconds
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.style.opacity = '0';
-                    alertDiv.style.transform = 'translateY(-20px)';
-                    setTimeout(() => {
-                        if (alertDiv.parentNode) {
-                            alertDiv.parentNode.removeChild(alertDiv);
-                        }
-                    }, 300);
-                }
-            }, 5000);
+        if (username.length < 3) {
+            usernameCheck.innerHTML = '<i class="fas fa-info-circle"></i> Username must be at least 3 characters';
+            usernameCheck.className = 'username-check';
+            return;
         }
         
-        // Add animation to benefit items
-        const benefitItems = document.querySelectorAll('.benefit-item');
-        benefitItems.forEach((item, index) => {
-            item.style.animationDelay = `${index * 0.1}s`;
-            item.style.animation = 'slideIn 0.5s ease forwards';
-            item.style.opacity = '0';
-        });
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+            usernameCheck.innerHTML = '<i class="fas fa-exclamation-circle"></i> Only letters, numbers, and underscores allowed';
+            usernameCheck.className = 'username-check taken';
+            return;
+        }
         
-        // Password strength indicator (optional enhancement)
-        const passwordField = document.getElementById('password');
-        const strengthIndicator = document.createElement('div');
-        strengthIndicator.style.marginTop = '8px';
-        strengthIndicator.style.fontSize = '0.85rem';
-        strengthIndicator.style.display = 'none';
+        // Show loading
+        usernameCheck.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking username availability...';
+        usernameCheck.className = 'username-check loading';
         
-        passwordField.parentNode.appendChild(strengthIndicator);
+        // Debounce the check
+        usernameCheckTimeout = setTimeout(() => {
+            checkUsernameAvailability(username);
+        }, 500);
+    });
+    
+    function checkUsernameAvailability(username) {
+        // In a real implementation, this would make an AJAX call to the server
+        // For this demo, we'll simulate with a timeout
         
-        passwordField.addEventListener('input', function() {
-            const password = this.value;
-            if (password.length === 0) {
-                strengthIndicator.style.display = 'none';
-                return;
+        // Simulate API call delay
+        setTimeout(() => {
+            // This is a demo - in reality, you would check against your database
+            const takenUsernames = ['admin', 'user', 'test', 'john', 'jane']; // Example taken usernames
+            
+            if (takenUsernames.includes(username.toLowerCase())) {
+                usernameCheck.innerHTML = '<i class="fas fa-times-circle"></i> Username already taken';
+                usernameCheck.className = 'username-check taken';
+            } else {
+                usernameCheck.innerHTML = '<i class="fas fa-check-circle"></i> Username available';
+                usernameCheck.className = 'username-check available';
             }
-            
-            strengthIndicator.style.display = 'block';
-            
-            let strength = 0;
-            if (password.length >= 6) strength++;
-            if (/[A-Z]/.test(password)) strength++;
-            if (/[0-9]/.test(password)) strength++;
-            if (/[^A-Za-z0-9]/.test(password)) strength++;
-            
-            const strengthText = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
-            const strengthColors = ['#ff4757', '#ff6b81', '#ffa502', '#2ed573', '#1e90ff'];
-            
-            strengthIndicator.innerHTML = `Strength: <span style="color: ${strengthColors[strength]}; font-weight: 600;">${strengthText[strength]}</span>`;
+        }, 300);
+    }
+    
+    // Password strength indicator
+    const passwordField = document.getElementById('password');
+    const passwordStrengthBar = document.getElementById('passwordStrengthBar');
+    const passwordStrengthText = document.getElementById('passwordStrengthText');
+    
+    passwordField.addEventListener('input', function() {
+        const password = this.value;
+        let strength = 0;
+        let color = '#e74c3c';
+        let text = 'Very Weak';
+        
+        if (password.length >= 6) strength++;
+        if (password.length >= 8) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+        
+        switch(strength) {
+            case 0:
+            case 1:
+                color = '#e74c3c';
+                text = 'Very Weak';
+                break;
+            case 2:
+                color = '#e74c3c';
+                text = 'Weak';
+                break;
+            case 3:
+                color = '#f39c12';
+                text = 'Fair';
+                break;
+            case 4:
+                color = '#2ecc71';
+                text = 'Good';
+                break;
+            case 5:
+                color = '#2ecc71';
+                text = 'Strong';
+                break;
+        }
+        
+        const percentage = (strength / 5) * 100;
+        passwordStrengthBar.style.width = percentage + '%';
+        passwordStrengthBar.style.background = color;
+        passwordStrengthText.textContent = text;
+        passwordStrengthText.style.color = color;
+    });
+    
+    // Password match check
+    const confirmPasswordField = document.getElementById('confirm_password');
+    const passwordMatch = document.getElementById('passwordMatch');
+    
+    function checkPasswordMatch() {
+        const password = passwordField.value;
+        const confirmPassword = confirmPasswordField.value;
+        
+        if (confirmPassword.length === 0) {
+            passwordMatch.innerHTML = '';
+            return;
+        }
+        
+        if (password === confirmPassword) {
+            passwordMatch.innerHTML = '<i class="fas fa-check-circle" style="color: #2ecc71;"></i> Passwords match';
+            passwordMatch.style.color = '#2ecc71';
+        } else {
+            passwordMatch.innerHTML = '<i class="fas fa-times-circle" style="color: #e74c3c;"></i> Passwords do not match';
+            passwordMatch.style.color = '#e74c3c';
+        }
+    }
+    
+    passwordField.addEventListener('input', checkPasswordMatch);
+    confirmPasswordField.addEventListener('input', checkPasswordMatch);
+    
+    // Form validation
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const terms = document.getElementById('terms').checked;
+        
+        // Check required fields
+        if (!name || !username || !email || !password || !confirmPassword) {
+            e.preventDefault();
+            showAlert('Please fill in all required fields!', 'error');
+            return false;
+        }
+        
+        // Check username format
+        if (!/^[a-zA-Z0-9_]{3,50}$/.test(username)) {
+            e.preventDefault();
+            showAlert('Username must be 3-50 characters and can only contain letters, numbers, and underscores!', 'error');
+            return false;
+        }
+        
+        // Check password length
+        if (password.length < 6) {
+            e.preventDefault();
+            showAlert('Password must be at least 6 characters long!', 'error');
+            return false;
+        }
+        
+        // Check password match
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            showAlert('Passwords do not match!', 'error');
+            return false;
+        }
+        
+        // Check email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            e.preventDefault();
+            showAlert('Please enter a valid email address!', 'error');
+            return false;
+        }
+        
+        // Check terms agreement
+        if (!terms) {
+            e.preventDefault();
+            showAlert('You must agree to the Terms of Service and Privacy Policy!', 'error');
+            return false;
+        }
+        
+        // Check if username is marked as taken
+        if (usernameCheck.classList.contains('taken')) {
+            e.preventDefault();
+            showAlert('Please choose a different username. This one is already taken!', 'error');
+            return false;
+        }
+        
+        // Disable submit button to prevent double submission
+        const submitButton = document.getElementById('submitButton');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+        
+        return true;
+    });
+    
+    // Auto-focus name field
+    document.addEventListener('DOMContentLoaded', function() {
+        const nameField = document.getElementById('name');
+        if (nameField && !nameField.value) {
+            nameField.focus();
+        }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            document.getElementById('registerForm').submit();
+        }
+        
+        // Escape key to go back
+        if (e.key === 'Escape') {
+            window.history.back();
+        }
+    });
+    
+    // Alert function
+    function showAlert(message, type) {
+        // Remove existing alerts
+        const existingAlerts = document.querySelectorAll('.alert');
+        existingAlerts.forEach(alert => {
+            if (!alert.classList.contains('alert-danger') && !alert.classList.contains('alert-success')) {
+                alert.remove();
+            }
         });
+        
+        // Create new alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'}`;
+        alertDiv.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${message}`;
+        alertDiv.style.animation = 'none';
+        alertDiv.style.opacity = '0';
+        
+        // Insert after register header
+        const registerHeader = document.querySelector('.register-header');
+        registerHeader.parentNode.insertBefore(alertDiv, registerHeader.nextSibling);
+        
+        // Trigger animation
+        setTimeout(() => {
+            alertDiv.style.animation = 'slideIn 0.5s ease';
+            alertDiv.style.opacity = '1';
+        }, 10);
+        
+        // Remove alert after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.style.opacity = '0';
+                alertDiv.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.parentNode.removeChild(alertDiv);
+                    }
+                }, 300);
+            }
+        }, 5000);
+    }
+    
+    // Add animation to benefit items
+    const benefitItems = document.querySelectorAll('.benefit-item');
+    benefitItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.1}s`;
+        item.style.animation = 'slideIn 0.5s ease forwards';
+        item.style.opacity = '0';
+    });
+    
+    // Real-time form validation
+    function validateForm() {
+        const name = document.getElementById('name').value.trim();
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const terms = document.getElementById('terms').checked;
+        
+        const submitButton = document.getElementById('submitButton');
+        let isValid = true;
+        
+        // Basic validation
+        if (!name || !username || !email || !password || !confirmPassword || !terms) {
+            isValid = false;
+        }
+        
+        // Username validation
+        if (!/^[a-zA-Z0-9_]{3,50}$/.test(username)) {
+            isValid = false;
+        }
+        
+        // Password validation
+        if (password.length < 6 || password !== confirmPassword) {
+            isValid = false;
+        }
+        
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            isValid = false;
+        }
+        
+        // Update button state
+        submitButton.disabled = !isValid;
+        
+        return isValid;
+    }
+    
+    // Add event listeners for real-time validation
+    const formInputs = document.querySelectorAll('#registerForm input');
+    formInputs.forEach(input => {
+        input.addEventListener('input', validateForm);
+        input.addEventListener('change', validateForm);
+    });
+    
+    // Initial validation
+    validateForm();
     </script>
 </body>
 </html>

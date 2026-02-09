@@ -266,9 +266,15 @@ if (!defined('SITE_URL')) {
                 
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <?php if ($_SESSION['user_role'] === 'Customer'): ?>
+                        <!-- Book Movie Navigation Link -->
+                        <a href="<?php echo SITE_URL; ?>index.php?page=customer/booking" 
+                           class="nav-link <?php echo $current_page == 'customer/booking' ? 'active' : ''; ?>">
+                            <i class="fas fa-ticket-alt"></i> Book Movie
+                        </a>
+                        
                         <a href="<?php echo SITE_URL; ?>index.php?page=customer/my-bookings" 
                            class="nav-link <?php echo $current_page == 'customer/my-bookings' ? 'active' : ''; ?>">
-                            <i class="fas fa-ticket-alt"></i> My Bookings
+                            <i class="fas fa-receipt"></i> My Bookings
                         </a>
                     <?php else: ?>
                         <a href="<?php echo SITE_URL; ?>index.php?page=admin/dashboard" 

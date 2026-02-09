@@ -7,6 +7,7 @@ USE movie;
 CREATE TABLE IF NOT EXISTS users (
     u_id INT AUTO_INCREMENT PRIMARY KEY,
     u_name VARCHAR(100) NOT NULL,
+    u_username VARCHAR(50) UNIQUE NOT NULL,
     u_email VARCHAR(100) UNIQUE NOT NULL,
     u_pass VARCHAR(255) NOT NULL,
     u_role ENUM('Admin', 'Customer') DEFAULT 'Customer',
