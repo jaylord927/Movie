@@ -1,10 +1,5 @@
 <?php
-// pages/login.php
-
-// Go up one level from pages/ to root
 $root_dir = dirname(__DIR__);
-
-// Include config and functions
 require_once $root_dir . '/includes/config.php';
 require_once $root_dir . '/includes/functions.php';
 
@@ -12,13 +7,13 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = sanitize_input($_POST['email']);
+    $login = sanitize_input($_POST['email']);
     $password = sanitize_input($_POST['password']);
     
     $conn = get_db_connection();
     
-    $stmt = $conn->prepare("SELECT u_id, u_name, u_email, u_pass, u_role, u_status FROM users WHERE u_email = ?");
-    $stmt->bind_param("s", $email);
+    $stmt = $conn->prepare("SELECT u_id, u_name, u_username, u_email, u_pass, u_role, u_status FROM users WHERE u_email = ? OR u_username = ?");
+    $stmt->bind_param("ss", $login, $login);
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -29,10 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($user['u_status'] === 'Active') {
                 $_SESSION['user_id'] = $user['u_id'];
                 $_SESSION['user_name'] = $user['u_name'];
+                $_SESSION['user_username'] = $user['u_username'];
                 $_SESSION['user_email'] = $user['u_email'];
                 $_SESSION['user_role'] = $user['u_role'];
                 
-                // Redirect based on role
                 if ($user['u_role'] === 'Admin') {
                     header("Location: " . SITE_URL . "index.php?page=admin/dashboard");
                     exit();
@@ -44,10 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Your account is inactive. Please contact administrator.";
             }
         } else {
-            $error = "Invalid email or password!";
+            $error = "Invalid username/email or password!";
         }
     } else {
-        $error = "Invalid email or password!";
+        $error = "Invalid username/email or password!";
     }
     
     $stmt->close();
@@ -91,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             min-height: 600px;
         }
         
-        /* Left Side - Login Form */
         .login-form-side {
             flex: 1;
             padding: 50px;
@@ -149,7 +143,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 1.1rem;
         }
         
-        /* Form Styles */
         .form-group {
             margin-bottom: 25px;
             position: relative;
@@ -266,7 +259,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-decoration: underline;
         }
         
-        /* Right Side - Features */
         .features-side {
             flex: 1;
             background: linear-gradient(135deg, rgba(226, 48, 32, 0.1), rgba(193, 27, 24, 0.2));
@@ -349,7 +341,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             line-height: 1.5;
         }
         
-        /* Alerts */
         .alert {
             padding: 15px 20px;
             border-radius: 10px;
@@ -370,7 +361,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border: 1px solid rgba(46, 204, 113, 0.3);
         }
         
-        /* Animations */
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -382,7 +372,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        /* Responsive Design */
+        .password-toggle {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            padding: 5px;
+        }
+        
+        .password-toggle:hover {
+            color: #ff6b6b;
+        }
+        
         @media (max-width: 992px) {
             .login-wrapper {
                 flex-direction: column;
@@ -429,30 +436,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 top: 20px;
             }
         }
-        
-        /* Password Toggle */
-        .password-toggle {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: rgba(255, 255, 255, 0.6);
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-            padding: 5px;
-        }
-        
-        .password-toggle:hover {
-            color: #ff6b6b;
-        }
     </style>
 </head>
 <body>
     <div class="login-wrapper">
-        <!-- Left Side: Login Form -->
         <div class="login-form-side">
             <div class="back-home">
                 <a href="<?php echo SITE_URL; ?>index.php?page=home">
@@ -532,7 +519,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
         
-        <!-- Right Side: Features -->
         <div class="features-side">
             <div class="features-header">
                 <h2 class="features-title">Movie Ticket Booking</h2>
@@ -587,7 +573,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        // Password toggle functionality
         const togglePassword = document.getElementById('togglePassword');
         const passwordField = document.getElementById('password');
         
@@ -597,32 +582,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
         });
         
-        // Form validation
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             
             if (!email || !password) {
                 e.preventDefault();
-                showAlert('Please fill in both email and password fields!', 'error');
+                showAlert('Please fill in both username/email and password fields!', 'error');
                 return false;
-            }
-            
-            // Email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                // If not email format, check if it's at least a username
-                if (email.length < 3) {
-                    e.preventDefault();
-                    showAlert('Please enter a valid email address or username!', 'error');
-                    return false;
-                }
             }
             
             return true;
         });
         
-        // Auto-focus email field
         document.addEventListener('DOMContentLoaded', function() {
             const emailField = document.getElementById('email');
             if (emailField && !emailField.value) {
@@ -630,31 +602,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
         
-        // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            // Ctrl+Enter to submit form
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 document.getElementById('loginForm').submit();
             }
             
-            // Escape key to go back
             if (e.key === 'Escape') {
                 window.history.back();
             }
         });
         
-        // Remember me functionality
         const rememberCheckbox = document.getElementById('remember');
         const emailField = document.getElementById('email');
         
-        // Load saved email if remember me was checked
         const savedEmail = localStorage.getItem('rememberedEmail');
         if (savedEmail && rememberCheckbox) {
             emailField.value = savedEmail;
             rememberCheckbox.checked = true;
         }
         
-        // Save email when form is submitted with remember me checked
         document.getElementById('loginForm').addEventListener('submit', function() {
             if (rememberCheckbox.checked) {
                 localStorage.setItem('rememberedEmail', emailField.value);
@@ -663,7 +629,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
         
-        // Forgot password modal (basic implementation)
         const forgotPasswordLink = document.querySelector('.forgot-password');
         forgotPasswordLink.addEventListener('click', function(e) {
             e.preventDefault();
@@ -673,22 +638,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
         
-        // Alert function
         function showAlert(message, type) {
-            // Remove existing alerts
             const existingAlerts = document.querySelectorAll('.alert');
             existingAlerts.forEach(alert => alert.remove());
             
-            // Create new alert
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'}`;
             alertDiv.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${message}`;
             
-            // Insert after login header
             const loginHeader = document.querySelector('.login-header');
             loginHeader.parentNode.insertBefore(alertDiv, loginHeader.nextSibling);
             
-            // Remove alert after 5 seconds
             setTimeout(() => {
                 if (alertDiv.parentNode) {
                     alertDiv.style.opacity = '0';
@@ -702,7 +662,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }, 5000);
         }
         
-        // Add animation to feature items
         const featureItems = document.querySelectorAll('.feature-item');
         featureItems.forEach((item, index) => {
             item.style.animationDelay = `${index * 0.1}s`;

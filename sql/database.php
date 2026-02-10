@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS movies (
     rating VARCHAR(10),
     description TEXT,
     poster_url VARCHAR(500),
+    trailer_url VARCHAR(500), 
     is_active BOOLEAN DEFAULT 1,
     added_by INT NULL,
     updated_by INT NULL,
@@ -69,6 +70,8 @@ CREATE TABLE IF NOT EXISTS seat_availability (
     show_date DATE NOT NULL,
     showtime TIME NOT NULL,
     seat_number VARCHAR(10) NOT NULL,
+    seat_type VARCHAR(20) DEFAULT 'Standard',
+    price DECIMAL(10,2) DEFAULT 350.00,
     is_available BOOLEAN DEFAULT 1,
     booking_id INT,
     FOREIGN KEY (schedule_id) REFERENCES movie_schedules(id) ON DELETE CASCADE
@@ -80,8 +83,23 @@ CREATE TABLE IF NOT EXISTS admin_activity_log (
     admin_id INT NOT NULL,
     action VARCHAR(50) NOT NULL,
     details TEXT,
-    movie_id INT NULL,
+    full_details TEXT NULL,
+    target_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (admin_id) REFERENCES users(u_id) ON DELETE CASCADE,
-    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE SET NULL
+    FOREIGN KEY (admin_id) REFERENCES users(u_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS customer_activity_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
+    details TEXT,
+    movie_id INT NULL,
+    schedule_id INT NULL,
+    booking_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES users(u_id) ON DELETE CASCADE,
+    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE SET NULL,
+    FOREIGN KEY (schedule_id) REFERENCES movie_schedules(id) ON DELETE SET NULL,
+    FOREIGN KEY (booking_id) REFERENCES tbl_booking(b_id) ON DELETE SET NULL
 );
