@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_schedule'])) {
     $showtime = htmlspecialchars(trim($_POST['showtime']));
     $total_seats = intval($_POST['total_seats']);
     
-    $movie_stmt = $conn->prepare("SELECT title FROM movies WHERE id = ? AND is_active = 1");
+    $movie_stmt = $conn->prepare("SELECT id, title, standard_price, premium_price, sweet_spot_price FROM movies WHERE id = ? AND is_active = 1");
     $movie_stmt->bind_param("i", $movie_id);
     $movie_stmt->execute();
     $movie_result = $movie_stmt->get_result();
@@ -40,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_schedule'])) {
     } else {
         $movie = $movie_result->fetch_assoc();
         $movie_title = $movie['title'];
+        $standard_price = $movie['standard_price'] ?? 350.00;
+        $premium_price = $movie['premium_price'] ?? 450.00;
+        $sweet_spot_price = $movie['sweet_spot_price'] ?? 550.00;
         $movie_stmt->close();
         
         $check_stmt = $conn->prepare("SELECT id FROM movie_schedules WHERE movie_id = ? AND show_date = ? AND showtime = ? AND is_active = 1");
@@ -60,16 +63,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_schedule'])) {
                 $seat_stmt = $conn->prepare("INSERT INTO seat_availability (schedule_id, movie_title, show_date, showtime, seat_number, seat_type, is_available, price) VALUES (?, ?, ?, ?, ?, ?, 1, ?)");
                 
                 for ($i = 1; $i <= $total_seats; $i++) {
-                    $seat_number = "A" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                    $seat_number = chr(64 + ceil($i / 10)) . str_pad((($i - 1) % 10) + 1, 2, '0', STR_PAD_LEFT);
                     $seat_type = 'Standard';
-                    $price = 350.00;
+                    $price = $standard_price;
                     
                     if ($i >= 1 && $i <= 10) {
                         $seat_type = 'Premium';
-                        $price = 450.00;
+                        $price = $premium_price;
                     } elseif ($i >= 31 && $i <= 40) {
                         $seat_type = 'Sweet Spot';
-                        $price = 550.00;
+                        $price = $sweet_spot_price;
                     }
                     
                     $seat_stmt->bind_param("isssssd", $new_schedule_id, $movie_title, $show_date, $showtime, $seat_number, $seat_type, $price);
@@ -77,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_schedule'])) {
                 }
                 
                 $seat_stmt->close();
-                $success = "Schedule added successfully! " . $total_seats . " seats created with seat types.";
+                $success = "Schedule added successfully! " . $total_seats . " seats created with prices from movie settings.";
                 $_POST = array();
             } else {
                 $error = "Failed to add schedule: " . $conn->error;
@@ -184,7 +187,7 @@ elseif (isset($_GET['manage_seats']) && is_numeric($_GET['manage_seats'])) {
     }
 }
 
-$movies_result = $conn->query("SELECT id, title FROM movies WHERE is_active = 1 ORDER BY title");
+$movies_result = $conn->query("SELECT id, title, standard_price, premium_price, sweet_spot_price FROM movies WHERE is_active = 1 ORDER BY title");
 $movies = [];
 if ($movies_result) {
     while ($row = $movies_result->fetch_assoc()) {
@@ -193,7 +196,7 @@ if ($movies_result) {
 }
 
 $schedules_result = $conn->query("
-    SELECT s.*, m.title as movie_title_full, 
+    SELECT s.*, m.title as movie_title_full, m.standard_price, m.premium_price, m.sweet_spot_price,
            (SELECT COUNT(*) FROM tbl_booking b 
             WHERE b.movie_name = s.movie_title 
             AND b.show_date = s.show_date 
@@ -215,7 +218,7 @@ if ($schedules_result) {
 if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
     $edit_id = intval($_GET['edit']);
     $stmt = $conn->prepare("
-        SELECT s.*, m.title as movie_title_full
+        SELECT s.*, m.title as movie_title_full, m.standard_price, m.premium_price, m.sweet_spot_price
         FROM movie_schedules s
         LEFT JOIN movies m ON s.movie_id = m.id
         WHERE s.id = ? AND s.is_active = 1
@@ -233,9 +236,12 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
 if (isset($_GET['manage_seats']) && is_numeric($_GET['manage_seats'])) {
     $manage_id = intval($_GET['manage_seats']);
     $seat_stmt = $conn->prepare("
-        SELECT * FROM seat_availability 
-        WHERE schedule_id = ? 
-        ORDER BY seat_number
+        SELECT sa.*, m.standard_price, m.premium_price, m.sweet_spot_price
+        FROM seat_availability sa
+        JOIN movie_schedules ms ON sa.schedule_id = ms.id
+        JOIN movies m ON ms.movie_id = m.id
+        WHERE sa.schedule_id = ? 
+        ORDER BY sa.seat_number
     ");
     $seat_stmt->bind_param("i", $manage_id);
     $seat_stmt->execute();
@@ -247,7 +253,7 @@ if (isset($_GET['manage_seats']) && is_numeric($_GET['manage_seats'])) {
     $seat_stmt->close();
     
     $schedule_info = $conn->prepare("
-        SELECT s.*, m.title as movie_title_full
+        SELECT s.*, m.title as movie_title_full, m.standard_price, m.premium_price, m.sweet_spot_price
         FROM movie_schedules s
         LEFT JOIN movies m ON s.movie_id = m.id
         WHERE s.id = ?
@@ -294,21 +300,39 @@ $conn->close();
             Show Time: <?php echo date('M d, Y', strtotime($current_schedule['show_date'])); ?> at <?php echo date('h:i A', strtotime($current_schedule['showtime'])); ?>
         </div>
         
+        <div style="background: rgba(52, 152, 219, 0.1); border-radius: 10px; padding: 20px; margin-bottom: 30px;">
+            <h3 style="color: white; font-size: 1.2rem; margin-bottom: 15px; font-weight: 600;">Price Settings from Movie</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div style="background: rgba(52, 152, 219, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="color: #3498db; font-size: 0.9rem; margin-bottom: 5px;">Standard Price</div>
+                    <div style="color: white; font-size: 1.3rem; font-weight: 700;">₱<?php echo number_format($current_schedule['standard_price'] ?? 350, 2); ?></div>
+                </div>
+                <div style="background: rgba(46, 204, 113, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="color: #2ecc71; font-size: 0.9rem; margin-bottom: 5px;">Premium Price</div>
+                    <div style="color: white; font-size: 1.3rem; font-weight: 700;">₱<?php echo number_format($current_schedule['premium_price'] ?? 450, 2); ?></div>
+                </div>
+                <div style="background: rgba(231, 76, 60, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="color: #e74c3c; font-size: 0.9rem; margin-bottom: 5px;">Sweet Spot Price</div>
+                    <div style="color: white; font-size: 1.3rem; font-weight: 700;">₱<?php echo number_format($current_schedule['sweet_spot_price'] ?? 550, 2); ?></div>
+                </div>
+            </div>
+        </div>
+        
         <form method="POST" action="">
             <input type="hidden" name="update_seat_types" value="1">
             
             <div style="display: flex; gap: 30px; flex-wrap: wrap; margin-bottom: 30px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 30px; height: 30px; background: #3498db; border-radius: 4px;"></div>
-                    <span style="color: white; font-weight: 600;">Standard (₱350)</span>
+                    <span style="color: white; font-weight: 600;">Standard (₱<?php echo number_format($current_schedule['standard_price'] ?? 350, 2); ?>)</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 30px; height: 30px; background: #2ecc71; border-radius: 4px;"></div>
-                    <span style="color: white; font-weight: 600;">Premium (₱450)</span>
+                    <span style="color: white; font-weight: 600;">Premium (₱<?php echo number_format($current_schedule['premium_price'] ?? 450, 2); ?>)</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 30px; height: 30px; background: #e74c3c; border-radius: 4px;"></div>
-                    <span style="color: white; font-weight: 600;">Sweet Spot (₱550)</span>
+                    <span style="color: white; font-weight: 600;">Sweet Spot (₱<?php echo number_format($current_schedule['sweet_spot_price'] ?? 550, 2); ?>)</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 30px; height: 30px; background: #95a5a6; border-radius: 4px;"></div>
@@ -378,7 +402,16 @@ $conn->close();
                     <select id="movie_id" name="movie_id" required style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(52, 152, 219, 0.3); border-radius: 10px; color: white; font-size: 1rem; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" fill=\"white\" viewBox=\"0 0 20 20\"><path d=\"M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z\"/></svg>'); background-repeat: no-repeat; background-position: right 16px center; background-size: 16px;">
                         <option value="">Select Movie</option>
                         <?php foreach ($movies as $movie): ?>
-                        <option value="<?php echo $movie['id']; ?>" <?php echo ($edit_mode && $edit_schedule['movie_id'] == $movie['id']) || (isset($_POST['movie_id']) && $_POST['movie_id'] == $movie['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($movie['title']); ?></option>
+                        <option value="<?php echo $movie['id']; ?>" 
+                                data-standard="<?php echo $movie['standard_price'] ?? 350; ?>"
+                                data-premium="<?php echo $movie['premium_price'] ?? 450; ?>"
+                                data-sweet="<?php echo $movie['sweet_spot_price'] ?? 550; ?>"
+                                <?php echo ($edit_mode && $edit_schedule['movie_id'] == $movie['id']) || (isset($_POST['movie_id']) && $_POST['movie_id'] == $movie['id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($movie['title']); ?> 
+                            (Std: ₱<?php echo number_format($movie['standard_price'] ?? 350, 0); ?> | 
+                            Prem: ₱<?php echo number_format($movie['premium_price'] ?? 450, 0); ?> | 
+                            Sweet: ₱<?php echo number_format($movie['sweet_spot_price'] ?? 550, 0); ?>)
+                        </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -406,6 +439,24 @@ $conn->close();
                            style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(52, 152, 219, 0.3); border-radius: 10px; color: white; font-size: 1rem;"
                            min="1" max="100" placeholder="Maximum seats">
                     <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.9rem; margin-top: 5px;">Standard: 40 seats (A01-A40)</div>
+                </div>
+            </div>
+            
+            <div id="pricePreview" style="background: rgba(52, 152, 219, 0.1); border-radius: 10px; padding: 20px; margin-bottom: 30px; display: none;">
+                <h3 style="color: white; font-size: 1.1rem; margin-bottom: 15px; font-weight: 600;">Price Settings for Selected Movie</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                    <div style="background: rgba(52, 152, 219, 0.2); padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="color: #3498db; font-size: 0.9rem;">Standard</div>
+                        <div style="color: white; font-size: 1.2rem; font-weight: 700;" id="previewStandard">₱350.00</div>
+                    </div>
+                    <div style="background: rgba(46, 204, 113, 0.2); padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="color: #2ecc71; font-size: 0.9rem;">Premium</div>
+                        <div style="color: white; font-size: 1.2rem; font-weight: 700;" id="previewPremium">₱450.00</div>
+                    </div>
+                    <div style="background: rgba(231, 76, 60, 0.2); padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="color: #e74c3c; font-size: 0.9rem;">Sweet Spot</div>
+                        <div style="color: white; font-size: 1.2rem; font-weight: 700;" id="previewSweet">₱550.00</div>
+                    </div>
                 </div>
             </div>
             
@@ -438,11 +489,12 @@ $conn->close();
         </div>
         <?php else: ?>
         <div style="overflow-x: auto; border-radius: 10px; border: 1px solid rgba(52, 152, 219, 0.2);">
-            <table style="width: 100%; border-collapse: collapse; min-width: 1000px;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 1200px;">
                 <thead>
                     <tr>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">ID</th>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Movie Details</th>
+                        <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Price Settings</th>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Show Time</th>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Seats</th>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Bookings</th>
@@ -461,6 +513,13 @@ $conn->close();
                         <td style="padding: 16px;">
                             <div style="color: white; font-size: 1.1rem; font-weight: 700; margin-bottom: 5px;"><?php echo htmlspecialchars($schedule['movie_title_full']); ?></div>
                             <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem;">Movie ID: <?php echo $schedule['movie_id']; ?></div>
+                        </td>
+                        <td style="padding: 16px;">
+                            <div style="background: rgba(52, 152, 219, 0.1); padding: 10px; border-radius: 6px;">
+                                <div style="color: #3498db; font-size: 0.85rem;">Standard: ₱<?php echo number_format($schedule['standard_price'] ?? 350, 2); ?></div>
+                                <div style="color: #2ecc71; font-size: 0.85rem;">Premium: ₱<?php echo number_format($schedule['premium_price'] ?? 450, 2); ?></div>
+                                <div style="color: #e74c3c; font-size: 0.85rem;">Sweet Spot: ₱<?php echo number_format($schedule['sweet_spot_price'] ?? 550, 2); ?></div>
+                            </div>
                         </td>
                         <td style="padding: 16px;">
                             <div style="color: #3498db; font-size: 1.1rem; font-weight: 700;"><?php echo date('h:i A', strtotime($schedule['showtime'])); ?></div>
@@ -652,6 +711,28 @@ seatSelects.forEach(select => {
         };
         this.style.background = colorMap[this.value] || '#3498db';
     });
+});
+
+// Price preview when movie is selected
+document.getElementById('movie_id')?.addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const standard = selected.dataset.standard || '350';
+    const premium = selected.dataset.premium || '450';
+    const sweet = selected.dataset.sweet || '550';
+    
+    document.getElementById('previewStandard').textContent = '₱' + parseFloat(standard).toFixed(2);
+    document.getElementById('previewPremium').textContent = '₱' + parseFloat(premium).toFixed(2);
+    document.getElementById('previewSweet').textContent = '₱' + parseFloat(sweet).toFixed(2);
+    
+    document.getElementById('pricePreview').style.display = 'block';
+});
+
+// Trigger change on page load if movie is selected
+window.addEventListener('load', function() {
+    const movieSelect = document.getElementById('movie_id');
+    if (movieSelect && movieSelect.value) {
+        movieSelect.dispatchEvent(new Event('change'));
+    }
 });
 </script>
 

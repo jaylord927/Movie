@@ -56,7 +56,7 @@ $allowed_pages = [
     'admin/manage-movies' => 'pages/admin/manage-movies.php',
     'admin/manage-schedules' => 'pages/admin/manage-schedules.php',
     'admin/manage-users' => 'pages/admin/manage-users.php',
-];
+];          
 
 // Get the actual file path
 if (isset($allowed_pages[$page])) {

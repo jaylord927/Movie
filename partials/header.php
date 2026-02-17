@@ -57,7 +57,7 @@ if (!defined('SITE_URL')) {
         }
         
         .header-container {
-            max-width: 1200px;
+            max-width: 1300px;
             margin: 0 auto;
             padding: 0 20px;
             display: flex;
@@ -98,7 +98,7 @@ if (!defined('SITE_URL')) {
         
         .nav-links {
             display: flex;
-            gap: 15px;
+            gap: 5px;
             align-items: center;
         }
         
@@ -125,36 +125,79 @@ if (!defined('SITE_URL')) {
             box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
         }
         
-        .user-info {
+        .user-section {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
+        }
+        
+        .user-profile-link {
+            text-decoration: none;
+            color: white;
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 5px 15px 5px 10px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .user-profile:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
+        }
+        
+        .user-profile.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .user-profile:hover .user-avatar {
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: scale(1.05);
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
         }
         
         .user-name {
-            font-weight: 600;
-            color: white;
-            font-size: 0.95rem;
-        }
-        
-        .user-role-badge {
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 0.75rem;
             font-weight: 700;
+            color: white;
+            font-size: 0.9rem;
+            line-height: 1.3;
+        }
+        
+        .user-role {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
             text-transform: uppercase;
-        }
-        
-        .role-admin {
-            background: rgba(255, 255, 255, 0.3);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-        }
-        
-        .role-customer {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
         .btn {
@@ -196,19 +239,19 @@ if (!defined('SITE_URL')) {
         }
         
         .btn-danger {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(226, 48, 32, 0.2);
             color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(226, 48, 32, 0.3);
         }
         
         .btn-danger:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(226, 48, 32, 0.3);
             transform: translateY(-2px);
-            border-color: rgba(255, 255, 255, 0.5);
+            border-color: rgba(226, 48, 32, 0.5);
         }
         
         /* Responsive Design */
-        @media (max-width: 992px) {
+        @media (max-width: 1000px) {
             .header-container {
                 flex-direction: column;
                 gap: 15px;
@@ -218,21 +261,26 @@ if (!defined('SITE_URL')) {
                 flex-wrap: wrap;
                 justify-content: center;
             }
+            
+            .user-section {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
         }
         
         @media (max-width: 576px) {
-            .nav-link {
-                padding: 6px 12px;
-                font-size: 0.85rem;
-            }
-            
-            .logo-title {
-                font-size: 1.4rem;
-            }
-            
-            .user-info {
+            .user-section {
                 flex-direction: column;
-                gap: 10px;
+                width: 100%;
+            }
+            
+            .user-profile-link {
+                width: 100%;
+            }
+            
+            .user-profile {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
@@ -243,71 +291,73 @@ if (!defined('SITE_URL')) {
             <a href="<?php echo SITE_URL; ?>" class="logo">
                 <div class="logo-icon">🎬</div>
                 <div class="logo-text">
-                    <div class="logo-title">MOVIE TICKETING</div>
+                    <div class="logo-title">MovieTicketBooking</div>
                     <div class="logo-tagline">Book Your Favorite Movies</div>
                 </div>
             </a>
             
-            <nav class="nav-links">
-                <?php
-                // Determine current page for active state
-                $current_page = isset($_GET['page']) ? $_GET['page'] : 'home';
-                ?>
-                
-                <a href="<?php echo SITE_URL; ?>" 
-                   class="nav-link <?php echo $current_page == 'home' ? 'active' : ''; ?>">
-                    <i class="fas fa-home"></i> Home
-                </a>
-                
-                <a href="<?php echo SITE_URL; ?>index.php?page=movies" 
-                   class="nav-link <?php echo $current_page == 'movies' ? 'active' : ''; ?>">
-                    <i class="fas fa-film"></i> All Movies
-                </a>
-                
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <?php if ($_SESSION['user_role'] === 'Customer'): ?>
-                        <!-- Book Movie Navigation Link -->
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <nav class="nav-links">
+                    <?php
+                    // Determine current page for active state
+                    $current_page = isset($_GET['page']) ? $_GET['page'] : 'home';
+                    ?>
+                    
+                    <a href="<?php echo SITE_URL; ?>" 
+                       class="nav-link <?php echo $current_page == 'home' ? 'active' : ''; ?>">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                    
+                    <a href="<?php echo SITE_URL; ?>index.php?page=movies" 
+                       class="nav-link <?php echo $current_page == 'movies' ? 'active' : ''; ?>">
+                        <i class="fas fa-film"></i> Movies
+                    </a>
+                    
+                    <?php if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'Customer'): ?>
                         <a href="<?php echo SITE_URL; ?>index.php?page=customer/booking" 
                            class="nav-link <?php echo $current_page == 'customer/booking' ? 'active' : ''; ?>">
-                            <i class="fas fa-ticket-alt"></i> Book Movie
+                            <i class="fas fa-ticket-alt"></i> Book Movies
                         </a>
                         
                         <a href="<?php echo SITE_URL; ?>index.php?page=customer/my-bookings" 
                            class="nav-link <?php echo $current_page == 'customer/my-bookings' ? 'active' : ''; ?>">
                             <i class="fas fa-receipt"></i> My Bookings
                         </a>
-                    <?php else: ?>
-                        <a href="<?php echo SITE_URL; ?>index.php?page=admin/dashboard" 
-                           class="nav-link <?php echo $current_page == 'admin/dashboard' || $current_page == 'admin-home' ? 'active' : ''; ?>">
-                            <i class="fas fa-shield-alt"></i> Admin Panel
-                        </a>
                     <?php endif; ?>
-                <?php endif; ?>
-            </nav>
-            
-            <div class="user-info">
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="user-name"><?php echo $_SESSION['user_name']; ?></span>
-                        <span class="user-role-badge <?php echo $_SESSION['user_role'] === 'Admin' ? 'role-admin' : 'role-customer'; ?>">
-                            <?php echo $_SESSION['user_role']; ?>
-                        </span>
-                    </div>
-                    <a href="<?php echo SITE_URL; ?>index.php?page=logout" class="btn btn-danger">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                <?php else: ?>
-                    <div style="display: flex; gap: 10px;">
+                </nav>
+                
+                <div class="user-section">
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <!-- User Profile - Clickable link to profile.php with hover effect -->
+                        <a href="<?php echo SITE_URL; ?>index.php?page=customer/profile" class="user-profile-link">
+                            <div class="user-profile <?php echo $current_page == 'customer/profile' ? 'active' : ''; ?>">
+                                <div class="user-avatar">
+                                    <?php echo strtoupper(substr($_SESSION['user_name'], 0, 1)); ?>
+                                </div>
+                                <div class="user-info">
+                                    <span class="user-name"><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
+                                    <span class="user-role"><?php echo $_SESSION['user_role']; ?></span>
+                                </div>
+                            </div>
+                        </a>
+                        
+                        <!-- Logout -->
+                        <a href="<?php echo SITE_URL; ?>index.php?page=logout" class="btn btn-danger">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                        
+                    <?php else: ?>
+                        <!-- Guest users -->
                         <a href="<?php echo SITE_URL; ?>index.php?page=login" class="btn btn-primary">
                             <i class="fas fa-sign-in-alt"></i> Login
                         </a>
                         <a href="<?php echo SITE_URL; ?>index.php?page=register" class="btn btn-secondary">
                             <i class="fas fa-user-plus"></i> Register
                         </a>
-                    </div>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </header>
     
-    <main style="flex: 1;">
+    <main style="flex: 1;"> 

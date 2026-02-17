@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Movies table 
+-- Movies table with venue fields and seat pricing
 CREATE TABLE IF NOT EXISTS movies (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -24,7 +24,13 @@ CREATE TABLE IF NOT EXISTS movies (
     rating VARCHAR(10),
     description TEXT,
     poster_url VARCHAR(500),
-    trailer_url VARCHAR(500), 
+    trailer_url VARCHAR(500),
+    venue_name VARCHAR(255),
+    venue_location VARCHAR(500),
+    google_maps_link VARCHAR(500),
+    standard_price DECIMAL(10,2) DEFAULT 350.00,
+    premium_price DECIMAL(10,2) DEFAULT 450.00,
+    sweet_spot_price DECIMAL(10,2) DEFAULT 550.00,
     is_active BOOLEAN DEFAULT 1,
     added_by INT NULL,
     updated_by INT NULL,

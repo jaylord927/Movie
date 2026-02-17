@@ -31,6 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_movie'])) {
     $description = htmlspecialchars(trim($_POST['description']));
     $poster_url = htmlspecialchars(trim($_POST['poster_url'] ?? ''));
     $trailer_url = htmlspecialchars(trim($_POST['trailer_url'] ?? ''));
+    $venue_name = htmlspecialchars(trim($_POST['venue_name'] ?? ''));
+    $venue_location = htmlspecialchars(trim($_POST['venue_location'] ?? ''));
+    $google_maps_link = htmlspecialchars(trim($_POST['google_maps_link'] ?? ''));
+    $standard_price = floatval($_POST['standard_price'] ?? 350);
+    $premium_price = floatval($_POST['premium_price'] ?? 450);
+    $sweet_spot_price = floatval($_POST['sweet_spot_price'] ?? 550);
     
     if (empty($title) || empty($genre) || empty($duration) || empty($rating) || empty($description)) {
         $error = "All required fields must be filled!";
@@ -43,8 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_movie'])) {
         if ($check_result->num_rows > 0) {
             $error = "Movie with this title already exists!";
         } else {
-            $stmt = $conn->prepare("INSERT INTO movies (title, genre, duration, rating, description, poster_url, trailer_url, is_active, added_by) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)");
-            $stmt->bind_param("sssssssi", $title, $genre, $duration, $rating, $description, $poster_url, $trailer_url, $_SESSION['user_id']);
+            $stmt = $conn->prepare("INSERT INTO movies (title, genre, duration, rating, description, poster_url, trailer_url, venue_name, venue_location, google_maps_link, standard_price, premium_price, sweet_spot_price, is_active, added_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)");
+            $stmt->bind_param("ssssssssssdddi", $title, $genre, $duration, $rating, $description, $poster_url, $trailer_url, $venue_name, $venue_location, $google_maps_link, $standard_price, $premium_price, $sweet_spot_price, $_SESSION['user_id']);
             
             if ($stmt->execute()) {
                 $new_movie_id = $stmt->insert_id;
@@ -70,9 +76,15 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_movie'])) 
     $description = htmlspecialchars(trim($_POST['description']));
     $poster_url = htmlspecialchars(trim($_POST['poster_url'] ?? ''));
     $trailer_url = htmlspecialchars(trim($_POST['trailer_url'] ?? ''));
+    $venue_name = htmlspecialchars(trim($_POST['venue_name'] ?? ''));
+    $venue_location = htmlspecialchars(trim($_POST['venue_location'] ?? ''));
+    $google_maps_link = htmlspecialchars(trim($_POST['google_maps_link'] ?? ''));
+    $standard_price = floatval($_POST['standard_price'] ?? 350);
+    $premium_price = floatval($_POST['premium_price'] ?? 450);
+    $sweet_spot_price = floatval($_POST['sweet_spot_price'] ?? 550);
     
-    $stmt = $conn->prepare("UPDATE movies SET title = ?, genre = ?, duration = ?, rating = ?, description = ?, poster_url = ?, trailer_url = ?, updated_by = ? WHERE id = ?");
-    $stmt->bind_param("sssssssii", $title, $genre, $duration, $rating, $description, $poster_url, $trailer_url, $_SESSION['user_id'], $id);
+    $stmt = $conn->prepare("UPDATE movies SET title = ?, genre = ?, duration = ?, rating = ?, description = ?, poster_url = ?, trailer_url = ?, venue_name = ?, venue_location = ?, google_maps_link = ?, standard_price = ?, premium_price = ?, sweet_spot_price = ?, updated_by = ? WHERE id = ?");
+    $stmt->bind_param("ssssssssssddiii", $title, $genre, $duration, $rating, $description, $poster_url, $trailer_url, $venue_name, $venue_location, $google_maps_link, $standard_price, $premium_price, $sweet_spot_price, $_SESSION['user_id'], $id);
     
     if ($stmt->execute()) {
         $success = "Movie updated successfully!";
@@ -252,13 +264,85 @@ $conn->close();
                            value="<?php echo $edit_mode ? htmlspecialchars($edit_movie['trailer_url'] ?? '') : (isset($_POST['trailer_url']) ? htmlspecialchars($_POST['trailer_url']) : ''); ?>"
                            style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(52, 152, 219, 0.3); border-radius: 10px; color: white; font-size: 1rem;"
                            placeholder="https://youtube.com/watch?v=...">
-                    <?php if ($edit_mode && !empty($edit_movie['trailer_url'])): ?>
-                    <div style="margin-top: 8px;">
-                        <a href="<?php echo htmlspecialchars($edit_movie['trailer_url']); ?>" target="_blank" style="color: #3498db; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 5px;">
-                            <i class="fas fa-external-link-alt"></i> View Trailer
-                        </a>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 30px;">
+                <div>
+                    <label style="display: block; color: white; font-weight: 600; margin-bottom: 10px; font-size: 1rem;">
+                        <i class="fas fa-building"></i> Venue Name
+                    </label>
+                    <input type="text" id="venue_name" name="venue_name" 
+                           value="<?php echo $edit_mode ? htmlspecialchars($edit_movie['venue_name'] ?? '') : (isset($_POST['venue_name']) ? htmlspecialchars($_POST['venue_name']) : ''); ?>"
+                           style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(52, 152, 219, 0.3); border-radius: 10px; color: white; font-size: 1rem;"
+                           placeholder="e.g., SM Cinema, Ayala Malls Cinemas">
+                </div>
+                
+                <div>
+                    <label style="display: block; color: white; font-weight: 600; margin-bottom: 10px; font-size: 1rem;">
+                        <i class="fas fa-map-marker-alt"></i> Venue Location
+                    </label>
+                    <input type="text" id="venue_location" name="venue_location" 
+                           value="<?php echo $edit_mode ? htmlspecialchars($edit_movie['venue_location'] ?? '') : (isset($_POST['venue_location']) ? htmlspecialchars($_POST['venue_location']) : ''); ?>"
+                           style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(52, 152, 219, 0.3); border-radius: 10px; color: white; font-size: 1rem;"
+                           placeholder="e.g., SM City Cebu, North Wing, 3rd Floor">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <label style="display: block; color: white; font-weight: 600; margin-bottom: 10px; font-size: 1rem;">
+                    <i class="fas fa-map"></i> Google Maps Link
+                </label>
+                <input type="url" id="google_maps_link" name="google_maps_link" 
+                       value="<?php echo $edit_mode ? htmlspecialchars($edit_movie['google_maps_link'] ?? '') : (isset($_POST['google_maps_link']) ? htmlspecialchars($_POST['google_maps_link']) : ''); ?>"
+                       style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(52, 152, 219, 0.3); border-radius: 10px; color: white; font-size: 1rem;"
+                       placeholder="https://maps.google.com/?q=10.273055307646723,123.7611768131498">
+                <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.9rem; margin-top: 5px;">
+                    <i class="fas fa-info-circle"></i> Example: https://maps.google.com/?q=10.273055307646723,123.7611768131498
+                </div>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: white; font-size: 1.3rem; margin-bottom: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-tags"></i> Seat Pricing
+                </h3>
+                <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 20px; font-size: 0.95rem;">
+                    Set custom prices for each seat type. Leave default values if no changes needed.
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 25px;">
+                    <div>
+                        <label style="display: block; color: white; font-weight: 600; margin-bottom: 10px; font-size: 1rem;">
+                            <i class="fas fa-chair" style="color: #3498db;"></i> Standard Price (₱)
+                        </label>
+                        <input type="number" id="standard_price" name="standard_price" step="0.01" min="0" required
+                               value="<?php echo $edit_mode ? ($edit_movie['standard_price'] ?? 350) : (isset($_POST['standard_price']) ? $_POST['standard_price'] : 350); ?>"
+                               style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 2px solid #3498db; border-radius: 10px; color: white; font-size: 1rem;"
+                               placeholder="350.00">
+                        <div style="color: #3498db; font-size: 0.85rem; margin-top: 5px;">Default: ₱350.00</div>
                     </div>
-                    <?php endif; ?>
+                    
+                    <div>
+                        <label style="display: block; color: white; font-weight: 600; margin-bottom: 10px; font-size: 1rem;">
+                            <i class="fas fa-crown" style="color: #2ecc71;"></i> Premium Price (₱)
+                        </label>
+                        <input type="number" id="premium_price" name="premium_price" step="0.01" min="0" required
+                               value="<?php echo $edit_mode ? ($edit_movie['premium_price'] ?? 450) : (isset($_POST['premium_price']) ? $_POST['premium_price'] : 450); ?>"
+                               style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 2px solid #2ecc71; border-radius: 10px; color: white; font-size: 1rem;"
+                               placeholder="450.00">
+                        <div style="color: #2ecc71; font-size: 0.85rem; margin-top: 5px;">Default: ₱450.00</div>
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; color: white; font-weight: 600; margin-bottom: 10px; font-size: 1rem;">
+                            <i class="fas fa-star" style="color: #e74c3c;"></i> Sweet Spot Price (₱)
+                        </label>
+                        <input type="number" id="sweet_spot_price" name="sweet_spot_price" step="0.01" min="0" required
+                               value="<?php echo $edit_mode ? ($edit_movie['sweet_spot_price'] ?? 550) : (isset($_POST['sweet_spot_price']) ? $_POST['sweet_spot_price'] : 550); ?>"
+                               style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 2px solid #e74c3c; border-radius: 10px; color: white; font-size: 1rem;"
+                               placeholder="550.00">
+                        <div style="color: #e74c3c; font-size: 0.85rem; margin-top: 5px;">Default: ₱550.00</div>
+                    </div>
                 </div>
             </div>
             
@@ -291,12 +375,15 @@ $conn->close();
         </div>
         <?php else: ?>
         <div style="overflow-x: auto; border-radius: 10px; border: 1px solid rgba(52, 152, 219, 0.2);">
-            <table style="width: 100%; border-collapse: collapse; min-width: 1000px;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 1400px;">
                 <thead>
                     <tr>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">ID</th>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Poster</th>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Movie Details</th>
+                        <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Seat Prices</th>
+                        <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Venue</th>
+                        <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Google Maps</th>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Trailer</th>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Admin Info</th>
                         <th style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 16px; text-align: left; font-weight: 700; font-size: 1rem;">Actions</th>
@@ -335,9 +422,53 @@ $conn->close();
                             <?php endif; ?>
                         </td>
                         <td style="padding: 16px;">
+                            <div style="background: rgba(52, 152, 219, 0.1); padding: 12px; border-radius: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <i class="fas fa-chair" style="color: #3498db; width: 20px;"></i>
+                                    <span style="color: rgba(255,255,255,0.8);">Standard:</span>
+                                    <span style="color: white; font-weight: 700; margin-left: auto;">₱<?php echo number_format($movie['standard_price'] ?? 350, 2); ?></span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <i class="fas fa-crown" style="color: #2ecc71; width: 20px;"></i>
+                                    <span style="color: rgba(255,255,255,0.8);">Premium:</span>
+                                    <span style="color: white; font-weight: 700; margin-left: auto;">₱<?php echo number_format($movie['premium_price'] ?? 450, 2); ?></span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-star" style="color: #e74c3c; width: 20px;"></i>
+                                    <span style="color: rgba(255,255,255,0.8);">Sweet Spot:</span>
+                                    <span style="color: white; font-weight: 700; margin-left: auto;">₱<?php echo number_format($movie['sweet_spot_price'] ?? 550, 2); ?></span>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 16px;">
+                            <?php if (!empty($movie['venue_name']) || !empty($movie['venue_location'])): ?>
+                                <div style="color: white; font-weight: 600; margin-bottom: 5px;">
+                                    <?php echo htmlspecialchars($movie['venue_name'] ?? 'N/A'); ?>
+                                </div>
+                                <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.85rem;">
+                                    <?php echo htmlspecialchars($movie['venue_location'] ?? ''); ?>
+                                </div>
+                            <?php else: ?>
+                                <span style="color: rgba(255, 255, 255, 0.5);">Not specified</span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="padding: 16px;">
+                            <?php if (!empty($movie['google_maps_link'])): ?>
+                            <a href="<?php echo htmlspecialchars($movie['google_maps_link']); ?>" target="_blank" 
+                               style="color: #3498db; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(52, 152, 219, 0.1); border-radius: 6px; border: 1px solid rgba(52, 152, 219, 0.3);">
+                                <i class="fas fa-map-marker-alt"></i> View Map
+                            </a>
+                            <?php else: ?>
+                            <span style="color: rgba(255, 255, 255, 0.5); font-size: 0.9rem;">
+                                <i class="fas fa-times-circle"></i> No Map
+                            </span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="padding: 16px;">
                             <?php if (!empty($movie['trailer_url'])): ?>
-                            <a href="<?php echo htmlspecialchars($movie['trailer_url']); ?>" target="_blank" style="color: #3498db; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(52, 152, 219, 0.1); border-radius: 6px; border: 1px solid rgba(52, 152, 219, 0.3);">
-                                <i class="fas fa-play"></i> Watch Trailer
+                            <a href="<?php echo htmlspecialchars($movie['trailer_url']); ?>" target="_blank" 
+                               style="color: #3498db; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(52, 152, 219, 0.1); border-radius: 6px; border: 1px solid rgba(52, 152, 219, 0.3);">
+                                <i class="fas fa-play"></i> Watch
                             </a>
                             <?php else: ?>
                             <span style="color: rgba(255, 255, 255, 0.5); font-size: 0.9rem;">
@@ -422,7 +553,7 @@ $conn->close();
 </style>
 
 <script>
-document.getElementById('movieForm').addEventListener('submit', function(e) {
+document.getElementById('movieForm')?.addEventListener('submit', function(e) {
     const title = document.getElementById('title').value.trim();
     const genre = document.getElementById('genre').value.trim();
     const duration = document.getElementById('duration').value.trim();
