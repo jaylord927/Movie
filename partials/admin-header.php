@@ -236,7 +236,7 @@ if (!defined('SITE_URL')) {
                 <div class="admin-logo-icon">⚙️</div>
                 <div class="admin-logo-text">
                     <div class="admin-logo-title">ADMIN PANEL</div>
-                    <div class="admin-logo-subtitle">Movie Ticketing System</div>
+                    <div class="admin-logo-subtitle">Movie Ticket Booking</div>
                 </div>
             </a>
             

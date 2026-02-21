@@ -27,7 +27,7 @@ if (!defined('SITE_URL')) {
                             <li><a href="<?php echo SITE_URL; ?>index.php?page=customer/browse-movies"><i class="fas fa-film"></i> Movies</a></li>
                             <li><a href="<?php echo SITE_URL; ?>index.php?page=customer/my-bookings"><i class="fas fa-ticket-alt"></i> My Bookings</a></li>
                         <?php endif; ?>
-                        <li><a href="#"><i class="fas fa-info-circle"></i> About Us</a></li>
+                        <li><a href="<?php echo SITE_URL; ?>index.php?page=aboutus"><i class="fas fa-info-circle"></i> About Us</a></li>
                         <li><a href="#"><i class="fas fa-phone"></i> Contact Us</a></li>
                     </ul>
                 </div>
@@ -53,7 +53,7 @@ if (!defined('SITE_URL')) {
             </div>
             
             <div class="footer-bottom">
-                <p>&copy; <?php echo date('Y'); ?> Movie Ticketing System. All rights reserved. | 
+                <p>&copy; <?php echo date('Y'); ?> Movie TIcket Booking. All rights reserved. | 
                     <a href="#">Privacy Policy</a> | 
                     <a href="#">Terms of Service</a>
                 </p>

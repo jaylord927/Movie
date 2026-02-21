@@ -6,24 +6,24 @@ require_once $root_dir . '/partials/header.php';
 
 $conn = get_db_connection();
 
-// Get filter from URL
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'now-showing';
 
-// Fetch all active movies
 $movies_result = $conn->query("SELECT m.* FROM movies m WHERE m.is_active = 1 ORDER BY m.created_at DESC");
 $all_movies = [];
+$movies_with_posters = [];
 if ($movies_result) {
     while ($row = $movies_result->fetch_assoc()) {
         $all_movies[] = $row;
+        if (!empty($row['poster_url'])) {
+            $movies_with_posters[] = $row;
+        }
     }
 }
 
-// Separate movies with and without schedules
 $now_showing = [];
 $coming_soon = [];
 
 foreach ($all_movies as $movie) {
-    // Check if movie has any active schedules
     $schedule_check = $conn->prepare("SELECT id FROM movie_schedules WHERE movie_id = ? AND is_active = 1 AND show_date >= CURDATE() LIMIT 1");
     $schedule_check->bind_param("i", $movie['id']);
     $schedule_check->execute();
@@ -37,7 +37,6 @@ foreach ($all_movies as $movie) {
     $schedule_check->close();
 }
 
-// Determine which movies to display based on filter
 if ($filter === 'now-showing') {
     $display_movies = $now_showing;
     $display_title = "Now Showing";
@@ -62,25 +61,55 @@ $conn->close();
 ?>
 
 <div class="main-container">
-    <div class="hero-section">
-        <h1>Welcome to Movie Ticketing</h1>
-        <p>Book tickets for the latest blockbusters in cinemas near you</p>
-        <?php if (!isset($_SESSION['user_id'])): ?>
-            <div class="hero-buttons">
-                <a href="<?php echo SITE_URL; ?>index.php?page=login" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt"></i> Login to Book Tickets
-                </a>
+    <?php if (!empty($movies_with_posters)): ?>
+    <div class="slider-container">
+        <div class="slider" id="movieSlider">
+            <?php 
+            $display_posters = $movies_with_posters;
+            if (count($display_posters) < 6) {
+                $display_posters = array_merge($display_posters, $display_posters, $display_posters);
+            }
+            foreach ($display_posters as $movie): 
+            ?>
+            <div class="slide">
+                <img src="<?php echo $movie['poster_url']; ?>" alt="<?php echo htmlspecialchars($movie['title']); ?>">
+                <div class="slide-overlay">
+                    <h3><?php echo htmlspecialchars($movie['title']); ?></h3>
+                    <div class="slide-buttons">
+                        <a href="<?php echo SITE_URL; ?>index.php?page=customer/movie-details&id=<?php echo $movie['id']; ?>" class="btn-slide">
+                            <i class="fas fa-info-circle"></i> Details
+                        </a>
+                        <?php if (in_array($movie['id'], array_column($now_showing, 'id'))): ?>
+                            <?php if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'Customer'): ?>
+                                <a href="<?php echo SITE_URL; ?>index.php?page=customer/booking&movie=<?php echo $movie['id']; ?>" class="btn-slide btn-slide-primary">
+                                    <i class="fas fa-ticket-alt"></i> Book
+                                </a>
+                            <?php elseif (!isset($_SESSION['user_id'])): ?>
+                                <a href="<?php echo SITE_URL; ?>index.php?page=login" class="btn-slide btn-slide-primary">
+                                    <i class="fas fa-sign-in-alt"></i> Login
+                                </a>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
-        <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+        <button class="slider-btn slider-btn-prev" onclick="moveSlide(-1)">❮</button>
+        <button class="slider-btn slider-btn-next" onclick="moveSlide(1)">❯</button>
+        <div class="slider-dots" id="sliderDots"></div>
     </div>
+    <?php endif; ?>
 
-    <!-- Filter Buttons -->
     <div class="filter-section">
         <a href="?filter=now-showing" class="filter-btn <?php echo $filter === 'now-showing' ? 'active' : ''; ?>">
             <i class="fas fa-play-circle"></i> Now Showing
         </a>
         <a href="?filter=coming-soon" class="filter-btn <?php echo $filter === 'coming-soon' ? 'active' : ''; ?>">
             <i class="fas fa-clock"></i> Coming Soon
+        </a>
+        <a href="<?php echo SITE_URL; ?>index.php?page=movies" class="filter-btn">
+            <i class="fas fa-film"></i> All Movies
         </a>
     </div>
 
@@ -103,7 +132,7 @@ $conn->close();
                 <h3>No Movies Available</h3>
                 <p>
                     <?php if ($filter === 'now-showing'): ?>
-                        No movies are currently showing. Check back soon or browse coming soon!
+                        No movies are currently showing. Check out coming soon!
                     <?php else: ?>
                         No upcoming movies announced yet. Stay tuned for new releases!
                     <?php endif; ?>
@@ -288,14 +317,150 @@ $conn->close();
 <style>
 .main-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
-.hero-section {
-    text-align: center; padding: 40px 20px; margin-bottom: 30px;
-    background: linear-gradient(135deg, rgba(226, 48, 32, 0.1), rgba(193, 27, 24, 0.2));
-    border-radius: 20px; border: 2px solid rgba(226, 48, 32, 0.2);
+.slider-container {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    overflow: hidden;
+    border-radius: 20px;
+    margin-bottom: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
-.hero-section h1 { font-size: 3rem; color: white; margin-bottom: 20px; font-weight: 800; }
-.hero-section p { font-size: 1.2rem; color: var(--pale-red); margin-bottom: 30px; max-width: 600px; margin: 0 auto 30px; }
-.hero-buttons { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+
+.slider {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s ease-in-out;
+}
+
+.slide {
+    min-width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.slide-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+    color: white;
+    padding: 40px;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+
+.slide:hover .slide-overlay {
+    transform: translateY(0);
+}
+
+.slide-overlay h3 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 15px;
+    color: white;
+}
+
+.slide-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-slide {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-slide:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-slide-primary {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+    border: none;
+}
+
+.btn-slide-primary:hover {
+    background: linear-gradient(135deg, var(--dark-red) 0%, var(--deep-red) 100%);
+}
+
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slider-btn:hover {
+    background: rgba(226, 48, 32, 0.8);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.slider-btn-prev {
+    left: 20px;
+}
+
+.slider-btn-next {
+    right: 20px;
+}
+
+.slider-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.dot.active {
+    background: var(--primary-red);
+    transform: scale(1.2);
+}
+
+.dot:hover {
+    background: white;
+}
 
 .filter-section {
     display: flex; justify-content: center; gap: 15px; margin-bottom: 40px;
@@ -475,22 +640,85 @@ $conn->close();
 }
 
 @media (max-width: 768px) {
+    .slider-container { height: 350px; }
+    .slide-overlay { padding: 20px; }
+    .slide-overlay h3 { font-size: 1.3rem; }
     .movies-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-    .hero-section h1 { font-size: 2.3rem; }
     .features-grid { grid-template-columns: 1fr; }
     .filter-section { flex-direction: column; align-items: center; }
     .filter-btn { width: 200px; justify-content: center; }
 }
+
 @media (max-width: 576px) {
+    .slider-container { height: 250px; }
+    .slider-btn { width: 35px; height: 35px; font-size: 1rem; }
     .movies-grid { grid-template-columns: 1fr; }
-    .hero-section h1 { font-size: 2rem; }
     .section-header { flex-direction: column; gap: 15px; align-items: flex-start; }
     .movie-buttons .btn { padding: 6px; font-size: 0.75rem; }
 }
 </style>
 
 <script>
+let currentSlide = 0;
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+let autoSlideInterval;
+
+function showSlide(index) {
+    if (index >= totalSlides) {
+        currentSlide = 0;
+    } else if (index < 0) {
+        currentSlide = totalSlides - 1;
+    } else {
+        currentSlide = index;
+    }
+    
+    const slider = document.getElementById('movieSlider');
+    slider.style.transform = `translateX(-${currentSlide * 100}%)`;
+    
+    const dots = document.querySelectorAll('.dot');
+    dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentSlide % (totalSlides / 3));
+    });
+}
+
+function moveSlide(direction) {
+    showSlide(currentSlide + direction);
+    resetAutoSlide();
+}
+
+function createDots() {
+    const dotsContainer = document.getElementById('sliderDots');
+    const uniqueSlides = Math.min(6, totalSlides);
+    for (let i = 0; i < uniqueSlides; i++) {
+        const dot = document.createElement('span');
+        dot.classList.add('dot');
+        dot.onclick = () => {
+            showSlide(i);
+            resetAutoSlide();
+        };
+        dotsContainer.appendChild(dot);
+    }
+    showSlide(0);
+}
+
+function startAutoSlide() {
+    autoSlideInterval = setInterval(() => {
+        moveSlide(1);
+    }, 3000);
+}
+
+function resetAutoSlide() {
+    clearInterval(autoSlideInterval);
+    startAutoSlide();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    if (slides.length > 0) {
+        createDots();
+        startAutoSlide();
+    }
+    
     const movieCards = document.querySelectorAll('.movie-card');
     movieCards.forEach((card, index) => {
         card.style.animationDelay = `${index * 0.1}s`;

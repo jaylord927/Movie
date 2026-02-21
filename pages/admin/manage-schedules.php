@@ -169,12 +169,26 @@ elseif (isset($_GET['manage_seats']) && is_numeric($_GET['manage_seats'])) {
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_seat_types'])) {
         foreach ($_POST['seat_type'] as $seat_id => $seat_type) {
-            $price = 350.00;
+            $movie_prices = $conn->prepare("
+                SELECT m.standard_price, m.premium_price, m.sweet_spot_price 
+                FROM seat_availability sa
+                JOIN movie_schedules ms ON sa.schedule_id = ms.id
+                JOIN movies m ON ms.movie_id = m.id
+                WHERE sa.id = ?
+            ");
+            $movie_prices->bind_param("i", $seat_id);
+            $movie_prices->execute();
+            $prices_result = $movie_prices->get_result();
+            $prices = $prices_result->fetch_assoc();
+            $movie_prices->close();
             
+            $price = 350.00;
             if ($seat_type === 'Premium') {
-                $price = 450.00;
+                $price = $prices['premium_price'] ?? 450.00;
             } elseif ($seat_type === 'Sweet Spot') {
-                $price = 550.00;
+                $price = $prices['sweet_spot_price'] ?? 550.00;
+            } else {
+                $price = $prices['standard_price'] ?? 350.00;
             }
             
             $update_stmt = $conn->prepare("UPDATE seat_availability SET seat_type = ?, price = ? WHERE id = ?");
@@ -351,6 +365,15 @@ $conn->close();
                         if ($seat['seat_type'] === 'Premium') $seat_color = '#2ecc71';
                         if ($seat['seat_type'] === 'Sweet Spot') $seat_color = '#e74c3c';
                         if (!$seat['is_available']) $seat_color = '#95a5a6';
+                        
+                        $display_price = $seat['price'];
+                        if ($seat['seat_type'] === 'Premium') {
+                            $display_price = $current_schedule['premium_price'] ?? 450;
+                        } elseif ($seat['seat_type'] === 'Sweet Spot') {
+                            $display_price = $current_schedule['sweet_spot_price'] ?? 550;
+                        } else {
+                            $display_price = $current_schedule['standard_price'] ?? 350;
+                        }
                     ?>
                     <div style="text-align: center;">
                         <div style="margin-bottom: 5px; color: white; font-size: 0.9rem; font-weight: 600;"><?php echo $seat['seat_number']; ?></div>
@@ -359,7 +382,7 @@ $conn->close();
                             <option value="Premium" <?php echo $seat['seat_type'] === 'Premium' ? 'selected' : ''; ?> style="background: #2c3e50; color: white;">Premium</option>
                             <option value="Sweet Spot" <?php echo $seat['seat_type'] === 'Sweet Spot' ? 'selected' : ''; ?> style="background: #2c3e50; color: white;">Sweet Spot</option>
                         </select>
-                        <div style="margin-top: 5px; color: white; font-size: 0.8rem;">₱<?php echo number_format($seat['price'], 2); ?></div>
+                        <div style="margin-top: 5px; color: white; font-size: 0.8rem;">₱<?php echo number_format($display_price, 2); ?></div>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -713,7 +736,6 @@ seatSelects.forEach(select => {
     });
 });
 
-// Price preview when movie is selected
 document.getElementById('movie_id')?.addEventListener('change', function() {
     const selected = this.options[this.selectedIndex];
     const standard = selected.dataset.standard || '350';
@@ -727,7 +749,6 @@ document.getElementById('movie_id')?.addEventListener('change', function() {
     document.getElementById('pricePreview').style.display = 'block';
 });
 
-// Trigger change on page load if movie is selected
 window.addEventListener('load', function() {
     const movieSelect = document.getElementById('movie_id');
     if (movieSelect && movieSelect.value) {

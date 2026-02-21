@@ -60,7 +60,7 @@ require_once $root_dir . '/partials/header.php';
 <div class="movie-details-container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
     <div style="margin-bottom: 30px;">
         <a href="javascript:history.back()" style="color: var(--light-red); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600;">
-            <i class="fas fa-arrow-left"></i> Back to Movies
+            <i class="fas fa-arrow-left"></i> Back
         </a>
     </div>
 
@@ -154,6 +154,101 @@ require_once $root_dir . '/partials/header.php';
     </div>
     <?php endif; ?>
 
+    <!-- Venue Information Section -->
+    <?php if (!empty($movie['venue_name']) || !empty($movie['venue_location']) || !empty($movie['google_maps_link'])): ?>
+    <div style="background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-light) 100%); border-radius: 20px; padding: 30px; border: 1px solid rgba(226, 48, 32, 0.3); margin-bottom: 40px;">
+        <h2 style="color: white; font-size: 1.8rem; margin-bottom: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-map-marker-alt" style="color: #e74c3c;"></i> Venue Information
+        </h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
+            <div>
+                <?php if (!empty($movie['venue_name'])): ?>
+                <div style="margin-bottom: 20px;">
+                    <div style="color: var(--pale-red); font-size: 0.9rem; margin-bottom: 5px;">Venue Name</div>
+                    <div style="color: white; font-size: 1.3rem; font-weight: 700;"><?php echo htmlspecialchars($movie['venue_name']); ?></div>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($movie['venue_location'])): ?>
+                <div style="margin-bottom: 20px;">
+                    <div style="color: var(--pale-red); font-size: 0.9rem; margin-bottom: 5px;">Location</div>
+                    <div style="color: white; font-size: 1.1rem;"><?php echo htmlspecialchars($movie['venue_location']); ?></div>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($movie['google_maps_link'])): ?>
+                <a href="<?php echo $movie['google_maps_link']; ?>" target="_blank" 
+                   style="display: inline-flex; align-items: center; gap: 10px; background: #e74c3c; color: white; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 600; margin-top: 15px; transition: all 0.3s ease;">
+                    <i class="fas fa-map-marked-alt"></i> Open in Google Maps
+                    <i class="fas fa-external-link-alt" style="font-size: 0.8rem;"></i>
+                </a>
+                <?php endif; ?>
+            </div>
+            
+            <?php if (!empty($movie['google_maps_link'])): 
+                $coordinates = '';
+                if (preg_match('/q=([0-9.-]+),([0-9.-]+)/', $movie['google_maps_link'], $matches)) {
+                    $coordinates = $matches[1] . ', ' . $matches[2];
+                }
+            ?>
+            <div style="background: rgba(0,0,0,0.3); border-radius: 15px; padding: 20px;">
+                <div style="color: white; font-weight: 600; margin-bottom: 15px;">📍 Coordinates</div>
+                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; font-family: monospace; font-size: 1.1rem; color: #f1c40f;">
+                    <?php echo $coordinates ?: '10.273055307646723, 123.7611768131498'; ?>
+                </div>
+                <div style="color: var(--pale-red); font-size: 0.85rem; margin-top: 10px;">
+                    <i class="fas fa-info-circle"></i> Click the map button above to view exact location
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Price Information Section -->
+    <?php if (isset($movie['standard_price']) || isset($movie['premium_price']) || isset($movie['sweet_spot_price'])): ?>
+    <div style="background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-light) 100%); border-radius: 20px; padding: 30px; border: 1px solid rgba(226, 48, 32, 0.3); margin-bottom: 40px;">
+        <h2 style="color: white; font-size: 1.8rem; margin-bottom: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-tags" style="color: #f39c12;"></i> Ticket Prices
+        </h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            <div style="background: rgba(52, 152, 219, 0.2); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid rgba(52, 152, 219, 0.3);">
+                <div style="width: 50px; height: 50px; background: #3498db; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                    <i class="fas fa-chair" style="color: white; font-size: 1.5rem;"></i>
+                </div>
+                <h3 style="color: white; font-size: 1.2rem; margin-bottom: 10px; font-weight: 700;">Standard</h3>
+                <div style="color: #3498db; font-size: 1.8rem; font-weight: 800;">₱<?php echo number_format($movie['standard_price'] ?? 350, 2); ?></div>
+                <div style="color: var(--pale-red); font-size: 0.9rem; margin-top: 10px;">per seat</div>
+            </div>
+            
+            <div style="background: rgba(255, 215, 0, 0.2); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid rgba(255, 215, 0, 0.3);">
+                <div style="width: 50px; height: 50px; background: #FFD700; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                    <i class="fas fa-crown" style="color: #333; font-size: 1.5rem;"></i>
+                </div>
+                <h3 style="color: white; font-size: 1.2rem; margin-bottom: 10px; font-weight: 700;">Premium</h3>
+                <div style="color: #FFD700; font-size: 1.8rem; font-weight: 800;">₱<?php echo number_format($movie['premium_price'] ?? 450, 2); ?></div>
+                <div style="color: var(--pale-red); font-size: 0.9rem; margin-top: 10px;">per seat</div>
+            </div>
+            
+            <div style="background: rgba(231, 76, 60, 0.2); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid rgba(231, 76, 60, 0.3);">
+                <div style="width: 50px; height: 50px; background: #e74c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                    <i class="fas fa-star" style="color: white; font-size: 1.5rem;"></i>
+                </div>
+                <h3 style="color: white; font-size: 1.2rem; margin-bottom: 10px; font-weight: 700;">Sweet Spot</h3>
+                <div style="color: #e74c3c; font-size: 1.8rem; font-weight: 800;">₱<?php echo number_format($movie['sweet_spot_price'] ?? 550, 2); ?></div>
+                <div style="color: var(--pale-red); font-size: 0.9rem; margin-top: 10px;">per seat</div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; color: var(--pale-red); font-size: 0.95rem;">
+            <i class="fas fa-info-circle"></i> Prices are per ticket and may vary by showtime
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Upcoming Showtimes Section -->
     <div style="background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-light) 100%); border-radius: 20px; padding: 30px; border: 1px solid rgba(226, 48, 32, 0.3);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
             <h2 style="color: white; font-size: 1.8rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
@@ -179,6 +274,7 @@ require_once $root_dir . '/partials/header.php';
                     $is_tomorrow = date('Y-m-d', strtotime('+1 day')) == $schedule['show_date'];
                     $show_date = date('D, M d', strtotime($schedule['show_date']));
                     $show_time = date('h:i A', strtotime($schedule['showtime']));
+                    $seats_left_text = $schedule['available_seats'] <= 10 ? "{$schedule['available_seats']} seats left" : '';
                 ?>
                 <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(226, 48, 32, 0.2); transition: all 0.3s ease;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -199,6 +295,9 @@ require_once $root_dir . '/partials/header.php';
                             <span style="color: rgba(255,255,255,0.7);">Available Seats:</span>
                             <span style="color: <?php echo $schedule['available_seats'] < 10 ? '#ff6b6b' : '#2ecc71'; ?>; font-weight: 700;">
                                 <?php echo $schedule['available_seats']; ?>/<?php echo $schedule['total_seats']; ?>
+                                <?php if ($seats_left_text): ?>
+                                <span style="color: #ff6b6b; font-weight: 700;"> (<?php echo $seats_left_text; ?>)</span>
+                                <?php endif; ?>
                             </span>
                         </div>
                         <div style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; overflow: hidden;">

@@ -109,3 +109,15 @@ CREATE TABLE IF NOT EXISTS customer_activity_log (
     FOREIGN KEY (schedule_id) REFERENCES movie_schedules(id) ON DELETE SET NULL,
     FOREIGN KEY (booking_id) REFERENCES tbl_booking(b_id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS suggestions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    user_name VARCHAR(100),
+    user_email VARCHAR(100),
+    suggestion TEXT NOT NULL,
+    status ENUM('Pending', 'Reviewed', 'Implemented') DEFAULT 'Pending',
+    admin_notes TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(u_id) ON DELETE SET NULL
+);

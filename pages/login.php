@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header("Location: " . SITE_URL . "index.php?page=admin/dashboard");
                     exit();
                 } else {
-                    header("Location: " . SITE_URL . "index.php?page=customer/browse-movies");
+                    header("Location: " . SITE_URL . "index.php?page=home");
                     exit();
                 }
             } else {
