@@ -219,24 +219,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_suggestion']))
         </div>
     </div>
 
+    <!-- Meet Our Team Section - Updated with 4 members -->
     <div style="margin-bottom: 60px;">
         <h2 style="color: white; font-size: 2.2rem; text-align: center; margin-bottom: 40px; font-weight: 800;">Meet Our Team</h2>
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; max-width: 800px; margin: 0 auto;">
-            <div style="text-align: center;">
-                <div style="width: 180px; height: 180px; background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; border: 4px solid rgba(255,255,255,0.2);">
-                    <span style="font-size: 3.5rem; color: white;">DC</span>
-                </div>
-                <h3 style="color: white; font-size: 1.5rem; font-weight: 700;">Denise Kethley Caña</h3>
-                <p style="color: var(--pale-red); font-size: 1.1rem;">Documenter and Database Designer</p>
-            </div>
-
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
+            <!-- Jaylord Laspuña - Lead Developer -->
             <div style="text-align: center;">
                 <div style="width: 180px; height: 180px; background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; border: 4px solid rgba(255,255,255,0.2);">
                     <span style="font-size: 3.5rem; color: white;">JL</span>
                 </div>
                 <h3 style="color: white; font-size: 1.5rem; font-weight: 700;">Jaylord Laspuña</h3>
-                <p style="color: var(--pale-red); font-size: 1.1rem;">Developer and UI Designer</p>
+                <p style="color: var(--primary-red); font-size: 1.1rem; font-weight: 600;">Lead Developer</p>
+                <div style="margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-twitter"></i></a>
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+
+            <!-- Denise Caña - UI Designer -->
+            <div style="text-align: center;">
+                <div style="width: 180px; height: 180px; background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; border: 4px solid rgba(255,255,255,0.2);">
+                    <span style="font-size: 3.5rem; color: white;">DC</span>
+                </div>
+                <h3 style="color: white; font-size: 1.5rem; font-weight: 700;">Denise Caña</h3>
+                <p style="color: var(--primary-red); font-size: 1.1rem; font-weight: 600;">UI Designer</p>
+                <div style="margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-instagram"></i></a>
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+
+            <!-- Marilyn Papellero - UI/UX Designer -->
+            <div style="text-align: center;">
+                <div style="width: 180px; height: 180px; background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; border: 4px solid rgba(255,255,255,0.2);">
+                    <span style="font-size: 3.5rem; color: white;">MP</span>
+                </div>
+                <h3 style="color: white; font-size: 1.5rem; font-weight: 700;">Marilyn Papellero</h3>
+                <p style="color: var(--primary-red); font-size: 1.1rem; font-weight: 600;">UI/UX Designer</p>
+                <div style="margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-behance"></i></a>
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-dribbble"></i></a>
+                </div>
+            </div>
+
+            <!-- Martin Contreras - Database Handler -->
+            <div style="text-align: center;">
+                <div style="width: 180px; height: 180px; background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; border: 4px solid rgba(255,255,255,0.2);">
+                    <span style="font-size: 3.5rem; color: white;">MC</span>
+                </div>
+                <h3 style="color: white; font-size: 1.5rem; font-weight: 700;">Martin Contreras</h3>
+                <p style="color: var(--primary-red); font-size: 1.1rem; font-weight: 600;">Database Handler</p>
+                <div style="margin-top: 10px; display: flex; justify-content: center; gap: 15px;">
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fab fa-github"></i></a>
+                    <a href="#" style="color: var(--pale-red); text-decoration: none; transition: color 0.3s ease;" onmouseover="this.style.color='var(--primary-red)'" onmouseout="this.style.color='var(--pale-red)'"><i class="fas fa-database"></i></a>
+                </div>
             </div>
         </div>
     </div>
@@ -321,6 +362,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_suggestion']))
         box-shadow: 0 10px 30px rgba(226, 48, 32, 0.4) !important;
     }
 
+    .team-member:hover {
+        transform: translateY(-10px);
+        transition: transform 0.3s ease;
+    }
+
     @media (max-width: 768px) {
         .about-container {
             padding: 20px 15px;
@@ -331,6 +377,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_suggestion']))
         }
         
         .grid-2-col {
+            grid-template-columns: 1fr !important;
+        }
+        
+        .team-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 20px !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .team-grid {
             grid-template-columns: 1fr !important;
         }
     }

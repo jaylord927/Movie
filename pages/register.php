@@ -295,6 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #ff6b6b;
             text-decoration: none;
             font-weight: 600;
+            transition: all 0.3s ease;
         }
         
         .terms-agreement a:hover {
@@ -654,7 +655,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="terms-agreement">
                     <input type="checkbox" name="terms" id="terms" required>
                     <label for="terms">
-                        I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                        I agree to the <a href="<?php echo SITE_URL; ?>index.php?page=privacypolicy_termsservice&tab=terms" target="_blank">Terms of Service</a> and <a href="<?php echo SITE_URL; ?>index.php?page=privacypolicy_termsservice&tab=privacy" target="_blank">Privacy Policy</a>
                     </label>
                 </div>
                 
